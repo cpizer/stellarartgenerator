@@ -1,0 +1,14 @@
+Delphin:
+roi_center_ra = 311.2500
+roi_center_dec = 11
+roi_diameter_deg = 15
+
+Cassiopeia:
+roi_center_ra = 20
+roi_center_dec = 60
+roi_diameter_deg = 15
+
+M3:
+roi_center_ra = 205.5458
+roi_center_dec = 28.3772
+roi_diameter_deg = 0.25
