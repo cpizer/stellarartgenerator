@@ -9,9 +9,12 @@ from astropy.coordinates import Angle
 from astroquery.simbad import Simbad
 
 #User inputs!!!
-result_table = Simbad.query_object("Polaris") #Name des Objekts (Existenz evtl. auf https://simbad.u-strasbg.fr/simbad/sim-fid kontrollieren)
-no_of_sources = 2000 #Anzahl der Sterne in der dxf-Datei
-roi_diameter_deg = 20 #Sternbild ca. 10-20 Grad, Kugelsternhaufen 0.5-1 Grad
+result_table = Simbad.query_object("M3") #Name des Objekts (Existenz evtl. auf https://simbad.u-strasbg.fr/simbad/sim-fid kontrollieren)
+no_of_sources = 1000 #Anzahl der Sterne in der dxf-Datei
+roi_diameter_deg = 0.25 #Sternbild ca. 10-20 Grad, Kugelsternhaufen 0.5-1 Grad
+no_layers = 5 #Die Anzahl der Layer, welchen die Sterne je nach Helligkeit zugeordnet werden
+create_circles = True #Auf False setzen, falls anstatt Kreisen nur Punkte gezeichnet werden sollen
+initial_radius_dxf = 1.0 #Der Radius der Kreise in der initialen Layer. Wird in jeder weiteren Layer halbiert.
 #End of user inputs!!!
 
 roi_center_ra = Angle(result_table['RA'][0] + 'h').to(u.degree).to_value()
@@ -52,7 +55,6 @@ magnitude_row = sources_table['phot_g_mean_mag']
 for tmp_source in sources_table:
     magnitudes_list.append(tmp_source['phot_g_mean_mag'])
 
-no_layers = 5
 hist, bin_edges = np.histogram(magnitudes_list, no_layers)
 
 layer_min_ind = 0
@@ -82,13 +84,15 @@ for layer_ind in range(len(cartesian_points_layerwise)):
         cartesian_points_layerwise[layer_ind][i] = [-1 * desired_max_euclidean_distance * cartesian_points_layerwise[layer_ind][i][0] / max_euclidean_distance, desired_max_euclidean_distance * cartesian_points_layerwise[layer_ind][i][1] / max_euclidean_distance]
 
 #Write the data to a dxf-File
-radius = 5
 doc = ezdxf.new("R2010")
 msp = doc.modelspace()
 for layer_ind in range(len(cartesian_points_layerwise)):
     tmp_layer_name = "Layer{}".format(layer_ind+1)
     doc.layers.add(name=tmp_layer_name)
     for point in cartesian_points_layerwise[layer_ind]:
-        msp.add_circle((point[0], point[1]), radius, dxfattribs={"layer": tmp_layer_name})
-    radius = radius / 2
+        if create_circles:
+            msp.add_circle((point[0], point[1]), initial_radius_dxf, dxfattribs={"layer": tmp_layer_name})
+        else:
+            msp.add_point((point[0], point[1]), dxfattribs={"layer": tmp_layer_name})
+    initial_radius_dxf = initial_radius_dxf / 2
 doc.saveas("star_image.dxf")
