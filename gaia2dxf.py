@@ -10,12 +10,13 @@ from astroquery.simbad import Simbad
 
 #User inputs!!!
 result_table = Simbad.query_object("gam Cas") #Name des Objekts (Existenz evtl. auf https://simbad.u-strasbg.fr/simbad/sim-fid kontrollieren)
-no_of_sources = 1000 #Anzahl der Sterne in der dxf-Datei
+no_of_sources = 500 #Anzahl der Sterne in der dxf-Datei
 roi_diameter_deg = 10 #Sternbild ca. 10-20 Grad, Kugelsternhaufen 0.1-0.25 Grad
 no_layers = 5 #Die Anzahl der Layer, welchen die Sterne je nach Helligkeit zugeordnet werden
 create_circles = True #Auf False setzen, falls anstatt Kreisen nur Punkte gezeichnet werden sollen
-max_radius_dxf = 0.25 #Der Radius des hellsten Sterns/der hellsten Quelle. Die Querschnittsflaeche aller weiteren Sterne wird auf die Querschnittsflaeche dieses Sterns normiert
-image_diagonal_mm = 384 #Bilddiagonale in Millimeter
+max_radius_dxf = 1 #Der Radius des hellsten Sterns/der hellsten Quelle. Die Querschnittsflaeche aller weiteren Sterne wird auf die Querschnittsflaeche dieses Sterns normiert
+canvas_height_mm = 240  #Die Hoehe der Leinwand
+canvas_width_mm = 300   #Die Breite der Leinwand
 #End of user inputs!!!
 
 roi_center_ra = Angle(result_table['RA'][0] + 'h').to(u.degree).to_value()
@@ -97,7 +98,7 @@ for bin_no in range(no_layers):
     cartesian_points_layerwise.append(layer_points)
 
 #norm the maximum distance of all points to the desired maximum
-desired_max_euclidean_distance = image_diagonal_mm / 2
+desired_max_euclidean_distance = np.sqrt(canvas_height_mm**2 + canvas_width_mm**2) / 2
 for layer_ind in range(len(cartesian_points_layerwise)):
     for i in range(len(cartesian_points_layerwise[layer_ind])):
         cartesian_points_layerwise[layer_ind][i] = [-1 * desired_max_euclidean_distance * cartesian_points_layerwise[layer_ind][i][0] / max_euclidean_distance, desired_max_euclidean_distance * cartesian_points_layerwise[layer_ind][i][1] / max_euclidean_distance]
@@ -110,9 +111,16 @@ for layer_ind in range(len(cartesian_points_layerwise)):
     tmp_layer_name = "Layer{}".format(layer_ind+1)
     doc.layers.add(name=tmp_layer_name)
     for point in cartesian_points_layerwise[layer_ind]:
+        #check if the point lies outside the canvas
+        if abs(point[0]) > abs(canvas_width_mm/2) or abs(point[1]) > abs(canvas_height_mm/2):
+            continue
         if create_circles:
             msp.add_circle((point[0], point[1]), radii_list[point_ind], dxfattribs={"layer": tmp_layer_name})
             point_ind = point_ind + 1
         else:
             msp.add_point((point[0], point[1]), dxfattribs={"layer": tmp_layer_name})
+msp.add_line((-canvas_width_mm/2, canvas_height_mm/2), (canvas_width_mm/2, canvas_height_mm/2), dxfattribs={"layer": "canvas"})
+msp.add_line((-canvas_width_mm/2, -canvas_height_mm/2), (canvas_width_mm/2, -canvas_height_mm/2), dxfattribs={"layer": "canvas"})
+msp.add_line((canvas_width_mm/2, canvas_height_mm/2), (canvas_width_mm/2, -canvas_height_mm/2), dxfattribs={"layer": "canvas"})
+msp.add_line((-canvas_width_mm/2, canvas_height_mm/2), (-canvas_width_mm/2, -canvas_height_mm/2), dxfattribs={"layer": "canvas"})
 doc.saveas("gaia_based_image.dxf")
