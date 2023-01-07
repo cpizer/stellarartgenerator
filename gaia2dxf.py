@@ -111,7 +111,7 @@ for layer_ind in range(len(cartesian_points_layerwise)):
     tmp_layer_name = "Layer{}".format(layer_ind+1)
     doc.layers.add(name=tmp_layer_name)
     for point in cartesian_points_layerwise[layer_ind]:
-        #check if the point lies outside the canvas
+        #check if the point lies outside the canvas and skip adding it to the dxf, if so
         if abs(point[0]) > abs(canvas_width_mm/2) or abs(point[1]) > abs(canvas_height_mm/2):
             continue
         if create_circles:
@@ -119,6 +119,7 @@ for layer_ind in range(len(cartesian_points_layerwise)):
             point_ind = point_ind + 1
         else:
             msp.add_point((point[0], point[1]), dxfattribs={"layer": tmp_layer_name})
+#Add the canvas' outline
 msp.add_line((-canvas_width_mm/2, canvas_height_mm/2), (canvas_width_mm/2, canvas_height_mm/2), dxfattribs={"layer": "canvas"})
 msp.add_line((-canvas_width_mm/2, -canvas_height_mm/2), (canvas_width_mm/2, -canvas_height_mm/2), dxfattribs={"layer": "canvas"})
 msp.add_line((canvas_width_mm/2, canvas_height_mm/2), (canvas_width_mm/2, -canvas_height_mm/2), dxfattribs={"layer": "canvas"})
